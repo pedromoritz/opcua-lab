@@ -1,0 +1,11 @@
+{
+  "name": "hmi",
+  "version": "1.0.0",
+  "description": "HMI",
+  "main": "app.js",
+  "author": "Pedro Moritz de Carvalho Neto",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.17.1"
+  }
+}

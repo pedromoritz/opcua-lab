@@ -1,0 +1,198 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OPC UA Lab</title>
+    <link type="text/css" href="bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link type="text/css" href="bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet">
+    <link type="text/css" href="css/theme.css" rel="stylesheet">
+    <link type="text/css" href="images/icons/css/font-awesome.css" rel="stylesheet">
+    <link type="text/css" href='http://fonts.googleapis.com/css?family=Open+Sans:400italic,600italic,400,600' rel='stylesheet'>
+    <style>
+        canvas{
+            height:400px !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="navbar navbar-fixed-top">
+        <div class="navbar-inner">
+            <div class="container">
+                <span class="brand">OPC UA Lab</span><br>
+                UFSC/INE/CTC - INE410114 - Sistemas Embarcados Distribuídos
+            </div>
+        </div>
+    </div>
+    <div class="wrapper">
+        <div class="container">
+            <div class="row">
+                <div class="span12">
+                    <div class="content">
+                        <div class="module">
+                            <div class="module-head">
+                                <h3>
+                                    OPC UA Client A (Cliente/Server role)</h3>
+                            </div>
+                        </div>
+                        <div class="btn-box-row row-fluid">
+                            <a href="#" class="btn-box big span4">
+                                <p class="text-muted">
+                                    Current Temperature
+                                </p>
+                                <b><span id="temperature-text"> - </span>°C</b>
+                                <br>
+                                <p class="text-muted">
+                                    Timestamp
+                                </p>
+                                <b><span id="temperature-timestamp"> - </span></b>
+                            </a>
+                            <span class="btn-box small span2">
+                                <button id="query-temperature" type="submit" class="btn btn-primary center">Query Temperature</button>
+                            </span>
+                            <a href="#" class="btn-box big span4">
+                                <p class="text-muted">
+                                    Current Humidity
+                                </p>
+                                <b><span id="humidity-text"> - </span>%</b>
+                                <br>
+                                <p class="text-muted">
+                                    Timestamp
+                                </p>
+                                <b><span id="humidity-timestamp"> - </span></b>
+                            </a>
+                            <span class="btn-box small span2">
+                                <button id="query-humidity" type="submit" class="btn btn-primary center">Query Humidity</button>
+                            </span>
+                        </div>
+                        <div class="module">
+                            <div class="module-head">
+                                <h3>OPC UA Client B (PubSub role)</h3>
+                            </div>
+                        </div>
+                        <div class="module">
+                            <div class="module-body">
+                                <div>
+                                    <canvas id="graph"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="scripts/jquery-1.9.1.min.js" type="text/javascript"></script>
+    <script src="scripts/jquery-ui-1.10.1.custom.min.js" type="text/javascript"></script>
+    <script src="bootstrap/js/bootstrap.min.js" type="text/javascript"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js" integrity="sha512-d9xgZrVZpmmQlfonhQUvTR7lMPtO7NkZMkA0ABN3PHCbKA5nqylQ/yWlFAyY6hYgdF1Qh6nYiuADWwKB4C2WSw==" crossorigin="anonymous"></script>
+    <script>
+    $(function() {
+
+        document.getElementById("query-temperature").addEventListener("click", function() {
+            $("#query-temperature").prop('disabled', true);
+            $("#temperature-text").html(" - ");
+            $("#temperature-timestamp").html(" - ");
+
+            $.get(
+                "http://localhost:8081/temperature",
+                function(data) {
+                    $("#query-temperature").prop('disabled', false);
+                    $("#temperature-text").html(data.value);
+                    $("#temperature-timestamp").html(data.timestamp);
+                }
+            ).fail(function() {
+                $("#query-temperature").prop('disabled', false);
+            });
+        });
+
+        document.getElementById("query-humidity").addEventListener("click", function() {
+            $("#query-humidity").prop('disabled', true);
+            $("#humidity-text").html(" - ");
+            $("#humidity-timestamp").html(" - ");
+
+            $.get(
+                "http://localhost:8081/humidity",
+                function(data) {
+                    $("#query-humidity").prop('disabled', false);
+                    $("#humidity-text").html(data.value);
+                    $("#humidity-timestamp").html(data.timestamp);
+                }
+            ).fail(function() {
+                $("#query-humidity").prop('disabled', false);
+            });
+        });
+
+        var lineChartData = {
+            labels: [],
+            datasets: [{
+                label: 'Temperature',
+                borderColor: 'rgb(54, 162, 235)',
+                backgroundColor: 'rgb(54, 162, 235)',
+                fill: false,
+                data: []
+            }, {
+                label: 'Humidity',
+                borderColor: 'rgb(255, 99, 132)',
+                backgroundColor: 'rgb(255, 99, 132)',
+                fill: false,
+                data: []
+            }]
+        };
+
+        var lineChartOptions = {
+            maintainAspectRatio: false,
+            responsive: true,
+            hoverMode: 'index',
+            stacked: false,
+            scales: {
+                yAxes: [{
+                    position: 'right',
+                    ticks: {
+                        beginAtZero: true,
+                        steps: 10,
+                        stepValue: 5,
+                        max: 100
+                    }
+                }]
+            }
+        };
+
+        var lineChartCanvas = document.getElementById('graph').getContext('2d');
+        lineChartData.datasets[0].fill = false;
+        lineChartData.datasets[1].fill = false;
+        lineChartOptions.datasetFill = false
+
+        var lineChart = new Chart(lineChartCanvas, {
+            type: 'line',
+            data: lineChartData,
+            options: lineChartOptions
+        })
+
+        const numvalues = 60;
+
+        for (let i = 0; i < numvalues; ++i) {
+            lineChart.data.datasets[0].data.push('');
+            lineChart.data.datasets[1].data.push('');
+            lineChart.data.labels.push('');
+        }
+
+        setInterval(function() {
+            $.get(
+                "http://localhost:8082/sensor",
+                function(data) {
+                    lineChart.data.datasets[0].data.push(parseFloat(data.temperature));
+                    lineChart.data.datasets[0].data.shift();
+                    lineChart.data.datasets[1].data.push(parseFloat(data.humidity));
+                    lineChart.data.datasets[1].data.shift();
+                    lineChart.data.labels.push('');
+                    lineChart.data.labels.shift();
+                    lineChart.update();
+                }
+            );
+        }, 2000);
+    })
+    </script>
+</body>

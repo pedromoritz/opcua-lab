@@ -1,0 +1,14 @@
+version: '3'
+services:
+  hmi:
+    build: hmi
+    ports:
+      - "8080:8080"
+  client-a:
+    build: client-a
+    ports:
+      - "8081:8081"
+  client-b:
+    build: client-b
+    ports:
+      - "8082:8082"
